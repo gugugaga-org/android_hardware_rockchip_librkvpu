@@ -36,9 +36,16 @@ func Defaults(ctx android.LoadHookContext) {
 }
 
 
+func useGralloc4(ctx android.BaseContext) bool {
+    // build/envsetup.sh does not export legacy Make variables to Soong on
+    // LineageOS 20. Android 13's Rockchip graphics stack is Gralloc 4.
+    return strings.EqualFold(ctx.AConfig().Getenv("TARGET_RK_GRALLOC_VERSION"),"4") ||
+        ctx.AConfig().PlatformSdkVersion().FinalOrFutureInt() >= 33
+}
+
 func getSharedLibs(ctx android.BaseContext) ([]string) {
     var libs []string
-    if (strings.EqualFold(ctx.AConfig().Getenv("TARGET_RK_GRALLOC_VERSION"),"4") ) {
+    if useGralloc4(ctx) {
         libs = append(libs, "libgralloctypes")
         libs = append(libs, "libhidlbase")
         libs = append(libs, "libsync")
@@ -50,7 +57,7 @@ func getSharedLibs(ctx android.BaseContext) ([]string) {
 func getSrcs(ctx android.BaseContext) ([]string) {
     var src []string
     sdkVersion := ctx.AConfig().PlatformSdkVersion().FinalOrFutureInt()
-    if (strings.EqualFold(ctx.AConfig().Getenv("TARGET_RK_GRALLOC_VERSION"),"4") ) {
+    if useGralloc4(ctx) {
         if (sdkVersion >= 30 ) {
             src = append(src, "platform_gralloc4.cpp")
         }
@@ -80,7 +87,7 @@ func globalIncludeDefaults(ctx android.BaseContext) ([]string) {
             include_dirs = append(include_dirs,"hardware/rockchip/libgralloc")
         }
     }
-    if (strings.EqualFold(ctx.AConfig().Getenv("TARGET_RK_GRALLOC_VERSION"),"4") ) {
+    if useGralloc4(ctx) {
         include_dirs = append(include_dirs, "frameworks/native/include")
         include_dirs = append(include_dirs, "system/core/libsync")
         include_dirs = append(include_dirs, "system/core/libsync/include")
@@ -106,7 +113,7 @@ func globalCflagsDefaults(ctx android.BaseContext) ([]string) {
         cppflags = append(cppflags,"-DMALI_AFBC_GRALLOC=1")
     }
 
-    if (strings.EqualFold(ctx.AConfig().Getenv("TARGET_RK_GRALLOC_VERSION"),"4") ) {
+    if useGralloc4(ctx) {
         cppflags = append(cppflags,"-DUSE_GRALLOC_4")
     } else {
         if (strings.EqualFold(ctx.AConfig().Getenv("TARGET_BOARD_PLATFORM_GPU"),"G6110")) {
